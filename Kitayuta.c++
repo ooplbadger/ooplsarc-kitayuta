@@ -5,7 +5,6 @@
 
 
 //------------------------- Includes
-#include <algorithm> // reverse
 #include <sstream>   // stringstream
 
 #include "Kitayuta.h"
@@ -64,16 +63,23 @@ int kitayuta_strcmp(const string& string1, const string& string2)
  * @param
  * @return
  */
-bool kitayuta_walk(const char *s, int left_idx, int right_idx, int &num_matching_char)
+bool kitayuta_walk(const char *s, int left_idx, int right_idx,
+		   char *left_half, char *right_half, int &num_matching_char)
 {
   num_matching_char = 0;
   while (left_idx < right_idx) {
     if (s[left_idx] != s[right_idx]) {
       return false;
     }
+
+    // Record the matching character
+    *(left_half++)  = s[left_idx];
+    *(right_half--) = s[left_idx];
+
     ++num_matching_char;
     ++left_idx;
     --right_idx;
+
   }
   return true;
 }	// kitayuta_walk()
@@ -89,31 +95,37 @@ string kitayuta_eval(const string& input_string)
   int left_idx  = 0;
   int right_idx = input_string.length() - 1;
 
+  char left_half [STR_BUF_SIZE];  // left half of palindrome
+  char right_half[STR_BUF_SIZE]; // right half of palindrome
+
+  right_half[STR_BUF_SIZE - 1] = 0;	// terminate right-half string
+  char *right_end = right_half + STR_BUF_SIZE - 2;
+
   stringstream output_ss;
 
 
   //-------------------------------------------------- Walk string
   int num_matching_char;
-  if (kitayuta_walk(s, left_idx, right_idx, num_matching_char)) {
+  if (kitayuta_walk(s, left_idx, right_idx,
+		    left_half, right_end, num_matching_char)) {
     //-------------------------
     // Everything matches:  input is a palindrome
     //
-    string left_half;
+    left_half[num_matching_char] = 0;	// terminate left-half string
+
+    output_ss << left_half;
 
     if (left_idx + num_matching_char == right_idx - num_matching_char) {
-      // Odd number of characters
-      left_half = input_string.substr(0, num_matching_char + 1);
-      output_ss << left_half;
+      // Odd number of characters, so output the middle character twice
+      output_ss << s[num_matching_char];
+      output_ss << s[num_matching_char];
     } else {
-      // Even number of characters
-      left_half = input_string.substr(0, num_matching_char);
-      output_ss << left_half << GENERIC_CHAR;
+      // Even number of characters, so output a generic middle character
+      output_ss << GENERIC_CHAR;
     }
 
-    string right_half = left_half;
-    reverse(right_half.begin(), right_half.end());
+    output_ss << (right_end - num_matching_char + 1);
 
-    output_ss << right_half;
   } else {
     //-------------------------
     // Match failure, so try inserting a character and trying again
@@ -123,47 +135,53 @@ string kitayuta_eval(const string& input_string)
     if (kitayuta_walk(s,
 		      left_idx + num_matching_char + 1,
 		      right_idx - num_matching_char,
+		      left_half + num_matching_char + 1,
+		      right_end - num_matching_char - 1,
 		      num_matching_char_insert_char)) {
       //-------------------------
       // Found a match by inserting a character on the right
       //
-      num_matching_char += num_matching_char_insert_char;
+      left_half[num_matching_char]  = s[num_matching_char];
+      right_end[-num_matching_char] = s[num_matching_char];
 
-      string left_half = input_string.substr(0, num_matching_char + 1);
-      string right_half = left_half;
-      reverse(right_half.begin(), right_half.end());
+      num_matching_char += num_matching_char_insert_char + 1;
+
+      left_half[num_matching_char] = 0;	// terminate left-half string
 
       output_ss << left_half;
 
-      if (left_idx + num_matching_char < right_idx - num_matching_char) {
+      if (left_idx + num_matching_char - 1 < right_idx - num_matching_char + 1) {
 	// Odd number of characters, so insert middle character
-	output_ss << input_string.substr(num_matching_char + 1, 1);
+	output_ss << s[num_matching_char];
       }
 
-      output_ss << right_half;
+      output_ss << (right_end - num_matching_char + 1);
 
     } else if (kitayuta_walk(s,
 			     left_idx + num_matching_char,
 			     right_idx - num_matching_char - 1,
+			     left_half + num_matching_char + 1,
+			     right_end - num_matching_char - 1,
 			     num_matching_char_insert_char)) {
       //-------------------------
       // Found a match by inserting a character on the left
       //
-      num_matching_char += num_matching_char_insert_char;
+      left_half[num_matching_char]  = s[right_idx - num_matching_char];
+      right_end[-num_matching_char] = s[right_idx - num_matching_char];
 
-      string right_half = input_string.substr(right_idx - num_matching_char,
-					      num_matching_char + 1);
-      string left_half = right_half;
-      reverse(left_half.begin(), left_half.end());
+      num_matching_char += num_matching_char_insert_char + 1;
+
+      left_half[num_matching_char] = 0;	// terminate left-half string
 
       output_ss << left_half;
 
-      if (left_idx + num_matching_char < right_idx - num_matching_char) {
+      if (left_idx + num_matching_char - 1 < right_idx - num_matching_char + 1) {
 	// Odd number of characters, so insert middle character
-	output_ss << input_string.substr(num_matching_char, 1);
+	output_ss << s[num_matching_char - 1];
       }
 
-      output_ss << right_half;
+      output_ss << (right_end - num_matching_char + 1);
+
     } else {
       // Couldn't find a match by inserting a character on the left or the right:  fail
       output_ss << "NA";
