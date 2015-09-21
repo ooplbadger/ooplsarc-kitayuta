@@ -64,14 +64,14 @@ int kitayuta_strcmp(const string& string1, const string& string2)
  * @param
  * @return
  */
-bool kitayuta_walk(const char *s, int left_idx, int right_idx, int &num_steps)
+bool kitayuta_walk(const char *s, int left_idx, int right_idx, int &num_matching_char)
 {
-  num_steps = 0;
+  num_matching_char = 0;
   while (left_idx < right_idx) {
     if (s[left_idx] != s[right_idx]) {
       return false;
     }
-    ++num_steps;
+    ++num_matching_char;
     ++left_idx;
     --right_idx;
   }
@@ -93,20 +93,20 @@ string kitayuta_eval(const string& input_string)
 
 
   //-------------------------------------------------- Walk string
-  int num_steps;
-  if (kitayuta_walk(s, left_idx, right_idx, num_steps)) {
+  int num_matching_char;
+  if (kitayuta_walk(s, left_idx, right_idx, num_matching_char)) {
     //-------------------------
     // Everything matches:  input is a palindrome
     //
     string left_half;
 
-    if (left_idx + num_steps == right_idx - num_steps) {
+    if (left_idx + num_matching_char == right_idx - num_matching_char) {
       // Odd number of characters
-      left_half = input_string.substr(0, num_steps + 1);
+      left_half = input_string.substr(0, num_matching_char + 1);
       output_ss << left_half;
     } else {
       // Even number of characters
-      left_half = input_string.substr(0, num_steps);
+      left_half = input_string.substr(0, num_matching_char);
       output_ss << left_half << GENERIC_CHAR;
     }
 
@@ -118,39 +118,49 @@ string kitayuta_eval(const string& input_string)
     //-------------------------
     // Match failure, so try inserting a character and trying again
     //
+    int num_matching_char_insert_char;
 
-    int num_steps2;
-    if (kitayuta_walk(s, left_idx + num_steps + 1, right_idx - num_steps, num_steps2)) {
+    if (kitayuta_walk(s,
+		      left_idx + num_matching_char + 1,
+		      right_idx - num_matching_char,
+		      num_matching_char_insert_char)) {
       //-------------------------
       // Found a match by inserting a character on the right
       //
-      string left_half = input_string.substr(0, num_steps + num_steps2 + 1);
+      num_matching_char += num_matching_char_insert_char;
+
+      string left_half = input_string.substr(0, num_matching_char + 1);
       string right_half = left_half;
       reverse(right_half.begin(), right_half.end());
 
       output_ss << left_half;
 
-      if (left_idx + num_steps + num_steps2 < right_idx - num_steps - num_steps2) {
+      if (left_idx + num_matching_char < right_idx - num_matching_char) {
 	// Odd number of characters, so insert middle character
-	output_ss << input_string.substr(num_steps + num_steps2 + 1, 1);
+	output_ss << input_string.substr(num_matching_char + 1, 1);
       }
 
       output_ss << right_half;
 
-    } else if (kitayuta_walk(s, left_idx + num_steps, right_idx - num_steps - 1, num_steps2)) {
+    } else if (kitayuta_walk(s,
+			     left_idx + num_matching_char,
+			     right_idx - num_matching_char - 1,
+			     num_matching_char_insert_char)) {
       //-------------------------
       // Found a match by inserting a character on the left
       //
-      string right_half = input_string.substr(right_idx - num_steps - num_steps2,
-					      num_steps + num_steps2 + 1);
+      num_matching_char += num_matching_char_insert_char;
+
+      string right_half = input_string.substr(right_idx - num_matching_char,
+					      num_matching_char + 1);
       string left_half = right_half;
       reverse(left_half.begin(), left_half.end());
 
       output_ss << left_half;
 
-      if (left_idx + num_steps + num_steps2 < right_idx - num_steps - num_steps2) {
+      if (left_idx + num_matching_char < right_idx - num_matching_char) {
 	// Odd number of characters, so insert middle character
-	output_ss << input_string.substr(num_steps + num_steps2, 1);
+	output_ss << input_string.substr(num_matching_char, 1);
       }
 
       output_ss << right_half;
