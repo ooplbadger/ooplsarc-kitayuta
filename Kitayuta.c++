@@ -57,18 +57,18 @@ int kitayuta_strcmp(const string& string1, const string& string2)
 
 //===========================================================================
 // kitayuta_walk()
-// - check for palindromic match, recording matching characters in a left-buffer
-//   and a right-buffer
-//
 
 /**
- * @param s original string
- * @param left_idx
- * @param right_idx
- * @param left_ptr
- * @param right_ptr
- * @param num_matching_char
- * @return
+ * @param      s                 original string
+ * @param      left_idx          left-side character currently being compared
+ * @param      right_idx         right-side character currently being compared
+ * @param      left_ptr          left-side buffer for recording matching characters
+ * @param      right_ptr         right-side buffer for recording matching characters
+ * @param[out] num_matching_char number of matching characters
+ * @return                       whether we matched everything up to the middle
+ *
+ * Check for palindromic match, recording matching characters in a left-buffer
+ * and a right-buffer.
  */
 bool kitayuta_walk(const char *s, int left_idx, int right_idx,
 		   char *left_ptr, char *right_ptr, int &num_matching_char)
@@ -96,15 +96,37 @@ bool kitayuta_walk(const char *s, int left_idx, int right_idx,
 // kitayuta_output_answer()
 
 /**
- * @param
+ * @param      output_ss           output stringstream (if we match)
+ * @param      s                   original string
+ * @param      left_idx            left-side starting point for comparison
+ * @param      right_idx           right-side starting point for comparison
+ * @param      left_buf            left-side buffer (beginning of buffer)
+ * @param      left_ptr            left-side pointer for recording matching characters
+ * @param      right_ptr           right-side pointer for recording matching characters
+ * @param[out] num_matching_char   number of matching characters
+ * @param      need_to_insert_char whether a character needs to be inserted
+ * @return                         whether we matched everything up to the middle
+ *
+ * Check for palindromic match.  If it exists, then output results, including any
+ * previously-recorded matches as well.  Insert a character in the middle if need be.
  */
-void kitayuta_output_answer(stringstream & output_ss,
+bool kitayuta_output_answer(stringstream & output_ss,
 			    const char *s,
 			    int left_idx, int right_idx,
 			    char *left_buf, char *left_ptr, char *right_ptr,
-			    int num_matching_char,
+			    int &num_matching_char,
 			    bool need_to_insert_char)
 {
+  if (!kitayuta_walk(s, left_idx, right_idx,
+		    left_ptr, right_ptr, num_matching_char)) {
+    return false;
+  }
+
+  //--------------------------------------------------
+  // Left and right halves match
+  //
+
+
   left_ptr[num_matching_char] = 0;	// terminate left-half string
 
   output_ss << left_buf;
@@ -127,46 +149,46 @@ void kitayuta_output_answer(stringstream & output_ss,
 
   output_ss << (right_ptr - num_matching_char + 1);
 
+
+  return true;
 }	// kitayuta_output_answer()
 
 
 //===========================================================================
-// kitayuta_handle_insert_char()
+// kitayuta_insert_char()
 //
 
 /**
- * @param
- * @return
+ * @param      output_ss           output stringstream (if we match)
+ * @param      s                   original string
+ * @param      left_idx            left-side starting point for comparison
+ * @param      right_idx           right-side starting point for comparison
+ * @param      left_buf            left-side buffer (beginning of buffer)
+ * @param      left_ptr            left-side pointer for recording matching characters
+ * @param      right_ptr           right-side pointer for recording matching characters
+ * @param      inserted_char       character to be inserted
+ * @return                         whether we matched everything up to the middle
+ *
+ * A mismatch was previously found, so insert the mismatching character and try again.
  */
-bool kitayuta_handle_insert_char(stringstream & output_ss,
-				 const char *s,
-				 int left_idx, int right_idx,
-				 char *left_buf, char *left_ptr, char *right_ptr,
-				 char inserted_char)
+bool kitayuta_insert_char(stringstream & output_ss,
+			  const char *s,
+			  int left_idx, int right_idx,
+			  char *left_buf, char *left_ptr, char *right_ptr,
+			  char inserted_char)
 {
-  int num_matching_char;
-
-  if (!kitayuta_walk(s, left_idx, right_idx, left_ptr, right_ptr,
-		     num_matching_char)) {
-    return false;
-  }
-
-
-  //-------------------------------------------------- Found a match
-
   // Handle the character we inserted
   left_ptr[-1] = inserted_char;
   right_ptr[1] = inserted_char;
 
-  kitayuta_output_answer(output_ss, s,
-			 left_idx, right_idx,
-			 left_buf, left_ptr, right_ptr,
-			 num_matching_char,
-			 false);
 
-  return true;
-
-}	// kitayuta_handle_insert_char()
+  int num_matching_char;
+  return kitayuta_output_answer(output_ss, s,
+				left_idx, right_idx,
+				left_buf, left_ptr, right_ptr,
+				num_matching_char,
+				false);
+}	// kitayuta_insert_char()
 
 
 //===========================================================================
@@ -190,18 +212,11 @@ string kitayuta_eval(const string& input_string)
 
   //-------------------------------------------------- Walk string
   int num_matching_char;
-  if (kitayuta_walk(s, left_idx, right_idx,
-		    left_buf, right_ptr, num_matching_char)) {
-    //-------------------------
-    // Everything matches:  input is a palindrome
-    //
-    kitayuta_output_answer(output_ss, s,
-			   left_idx, right_idx,
-			   left_buf, left_buf, right_ptr,
-			   num_matching_char,
-			   true);
-
-  } else {
+  if (!kitayuta_output_answer(output_ss, s,
+			      left_idx, right_idx,
+			      left_buf, left_buf, right_ptr,
+			      num_matching_char,
+			      true)) {
     //-------------------------
     // Match failure, so try inserting a character and trying again
     //
@@ -209,19 +224,22 @@ string kitayuta_eval(const string& input_string)
     char *new_right_ptr = right_ptr - num_matching_char - 1;
 
     if (// Try inserting character on the right
-	!kitayuta_handle_insert_char(output_ss, s,
-				     left_idx + num_matching_char + 1,
-				     right_idx - num_matching_char,
-				     left_buf, new_left_ptr, new_right_ptr,
-				     s[num_matching_char]) &&
+	!kitayuta_insert_char(output_ss, s,
+			      left_idx + num_matching_char + 1,
+			      right_idx - num_matching_char,
+			      left_buf, new_left_ptr, new_right_ptr,
+			      s[num_matching_char]) &&
 
 	// Try inserting character on the left
-	!kitayuta_handle_insert_char(output_ss, s,
-				     left_idx + num_matching_char,
-				     right_idx - num_matching_char - 1,
-				     left_buf, new_left_ptr, new_right_ptr,
-				     s[right_idx - num_matching_char])) {
+	!kitayuta_insert_char(output_ss, s,
+			      left_idx + num_matching_char,
+			      right_idx - num_matching_char - 1,
+			      left_buf, new_left_ptr, new_right_ptr,
+			      s[right_idx - num_matching_char])) {
+
+      //--------------------------------------------------
       // Couldn't find a match by inserting a character on the left or the right:  fail
+      //
       output_ss << "NA";
     }
   }
