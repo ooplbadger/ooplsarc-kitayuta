@@ -36,7 +36,7 @@ int kitayuta_strcmp(const string& result_str, const string& ref_str);
 //
 
 /**
- * @param input_str input string
+ * @param input_string input string
  * @return output string
  *
  * Input string consists of 1-10 characters.  Each character is a lowercase
@@ -46,7 +46,7 @@ int kitayuta_strcmp(const string& result_str, const string& ref_str);
  * English letter, print the resulting string in a single line.
  * Otherwise, print "NA" (without quotes, case-sensitive). 
  */
-string kitayuta_eval(const string& input_str);
+string kitayuta_eval(const string& input_string);
 
 
 #endif // Kitayuta_h
