@@ -64,7 +64,7 @@ int kitayuta_strcmp(const string& string1, const string& string2)
  * @return
  */
 bool kitayuta_walk(const char *s, int left_idx, int right_idx,
-		   char *left_half, char *right_half, int &num_matching_char)
+		   char *left_ptr, char *right_ptr, int &num_matching_char)
 {
   num_matching_char = 0;
   while (left_idx < right_idx) {
@@ -73,8 +73,8 @@ bool kitayuta_walk(const char *s, int left_idx, int right_idx,
     }
 
     // Record the matching character
-    *(left_half++)  = s[left_idx];
-    *(right_half--) = s[left_idx];
+    *(left_ptr++)  = s[left_idx];
+    *(right_ptr--) = s[left_idx];
 
     ++num_matching_char;
     ++left_idx;
@@ -86,24 +86,24 @@ bool kitayuta_walk(const char *s, int left_idx, int right_idx,
 
 
 //===========================================================================
-// kitayuta_test_insert()
+// kitayuta_insert_char()
 //
 
 /**
  * @param
  * @return
  */
-bool kitayuta_test_insert(const char *s,
+bool kitayuta_insert_char(const char *s,
 			  int left_idx, int right_idx,
-			  char *left_half,
-			  char *left_end, char *right_end,
+			  char *left_buf,
+			  char *left_ptr, char *right_ptr,
 			  char inserted_char,
 			  stringstream & output_ss)
 {
-  int num_matching_char_insert_char;
+  int num_matching_char;
 
-  if (!kitayuta_walk(s, left_idx, right_idx, left_end, right_end,
-		     num_matching_char_insert_char)) {
+  if (!kitayuta_walk(s, left_idx, right_idx, left_ptr, right_ptr,
+		     num_matching_char)) {
     return false;
   }
 
@@ -111,26 +111,26 @@ bool kitayuta_test_insert(const char *s,
   //-------------------------------------------------- Found a match
 
   // Handle the character we inserted
-  left_end[-1] = inserted_char;
-  right_end[1] = inserted_char;
+  left_ptr[-1] = inserted_char;
+  right_ptr[1] = inserted_char;
 
-  left_end[num_matching_char_insert_char] = 0;	// terminate left-half string
+  left_ptr[num_matching_char] = 0;	// terminate left-half string
 
-  output_ss << left_half;
+  output_ss << left_buf;
 
-  if (left_idx + num_matching_char_insert_char <=
-      right_idx - num_matching_char_insert_char) {
+  if (left_idx + num_matching_char <=
+      right_idx - num_matching_char) {
     // Odd number of characters, so output middle character
-    output_ss << s[left_idx + num_matching_char_insert_char];
+    output_ss << s[left_idx + num_matching_char];
   }
 
-  output_ss << (right_end - num_matching_char_insert_char + 1);
+  output_ss << (right_ptr - num_matching_char + 1);
 
 
 
   return true;
 
-}	// kitayuta_test_insert()
+}	// kitayuta_insert_char()
 
 
 //===========================================================================
@@ -143,11 +143,11 @@ string kitayuta_eval(const string& input_string)
   int left_idx  = 0;
   int right_idx = input_string.length() - 1;
 
-  char left_half [STR_BUF_SIZE];  // left half of palindrome
-  char right_half[STR_BUF_SIZE]; // right half of palindrome
+  char left_buf [STR_BUF_SIZE];  // left half of palindrome
+  char right_buf[STR_BUF_SIZE]; // right half of palindrome
 
-  right_half[STR_BUF_SIZE - 1] = 0;	// terminate right-half string
-  char *right_end = right_half + STR_BUF_SIZE - 2;
+  right_buf[STR_BUF_SIZE - 1] = 0;	// terminate right-half string
+  char *right_ptr = right_buf + STR_BUF_SIZE - 2;
 
   stringstream output_ss;
 
@@ -155,13 +155,13 @@ string kitayuta_eval(const string& input_string)
   //-------------------------------------------------- Walk string
   int num_matching_char;
   if (kitayuta_walk(s, left_idx, right_idx,
-		    left_half, right_end, num_matching_char)) {
+		    left_buf, right_ptr, num_matching_char)) {
     //-------------------------
     // Everything matches:  input is a palindrome
     //
-    left_half[num_matching_char] = 0;	// terminate left-half string
+    left_buf[num_matching_char] = 0;	// terminate left-half string
 
-    output_ss << left_half;
+    output_ss << left_buf;
 
     if (left_idx + num_matching_char == right_idx - num_matching_char) {
       // Odd number of characters, so output the middle character twice
@@ -172,29 +172,28 @@ string kitayuta_eval(const string& input_string)
       output_ss << GENERIC_CHAR;
     }
 
-    output_ss << (right_end - num_matching_char + 1);
+    output_ss << (right_ptr - num_matching_char + 1);
 
   } else {
     //-------------------------
     // Match failure, so try inserting a character and trying again
     //
+    char *new_left_ptr  = left_buf + num_matching_char + 1;
+    char *new_right_ptr = right_ptr - num_matching_char - 1;
+
     if (// Try inserting character on the right
-	!kitayuta_test_insert(s,
+	!kitayuta_insert_char(s,
 			      left_idx + num_matching_char + 1,
 			      right_idx - num_matching_char,
-			      left_half,
-			      left_half + num_matching_char + 1,
-			      right_end - num_matching_char - 1,
+			      left_buf, new_left_ptr, new_right_ptr,
 			      s[num_matching_char],
 			      output_ss) &&
 
 	// Try inserting character on the left
-	!kitayuta_test_insert(s,
+	!kitayuta_insert_char(s,
 			      left_idx + num_matching_char,
 			      right_idx - num_matching_char - 1,
-			      left_half,
-			      left_half + num_matching_char + 1,
-			      right_end - num_matching_char - 1,
+			      left_buf, new_left_ptr, new_right_ptr,
 			      s[right_idx - num_matching_char],
 			      output_ss)) {
       // Couldn't find a match by inserting a character on the left or the right:  fail
