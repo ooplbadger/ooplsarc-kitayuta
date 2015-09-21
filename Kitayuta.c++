@@ -86,6 +86,54 @@ bool kitayuta_walk(const char *s, int left_idx, int right_idx,
 
 
 //===========================================================================
+// kitayuta_test_insert()
+//
+
+/**
+ * @param
+ * @return
+ */
+bool kitayuta_test_insert(const char *s,
+			  int left_idx, int right_idx,
+			  char *left_half,
+			  char *left_end, char *right_end,
+			  char inserted_char,
+			  stringstream & output_ss)
+{
+  int num_matching_char_insert_char;
+
+  if (!kitayuta_walk(s, left_idx, right_idx, left_end, right_end,
+		     num_matching_char_insert_char)) {
+    return false;
+  }
+
+
+  //-------------------------------------------------- Found a match
+
+  // Handle the character we inserted
+  left_end[-1] = inserted_char;
+  right_end[1] = inserted_char;
+
+  left_end[num_matching_char_insert_char] = 0;	// terminate left-half string
+
+  output_ss << left_half;
+
+  if (left_idx + num_matching_char_insert_char <=
+      right_idx - num_matching_char_insert_char) {
+    // Odd number of characters, so output middle character
+    output_ss << s[left_idx + num_matching_char_insert_char];
+  }
+
+  output_ss << (right_end - num_matching_char_insert_char + 1);
+
+
+
+  return true;
+
+}	// kitayuta_test_insert()
+
+
+//===========================================================================
 // kitayuta_eval()
 //
 string kitayuta_eval(const string& input_string)
@@ -130,59 +178,25 @@ string kitayuta_eval(const string& input_string)
     //-------------------------
     // Match failure, so try inserting a character and trying again
     //
-    int num_matching_char_insert_char;
+    if (// Try inserting character on the right
+	!kitayuta_test_insert(s,
+			      left_idx + num_matching_char + 1,
+			      right_idx - num_matching_char,
+			      left_half,
+			      left_half + num_matching_char + 1,
+			      right_end - num_matching_char - 1,
+			      s[num_matching_char],
+			      output_ss) &&
 
-    if (kitayuta_walk(s,
-		      left_idx + num_matching_char + 1,
-		      right_idx - num_matching_char,
-		      left_half + num_matching_char + 1,
-		      right_end - num_matching_char - 1,
-		      num_matching_char_insert_char)) {
-      //-------------------------
-      // Found a match by inserting a character on the right
-      //
-      left_half[num_matching_char]  = s[num_matching_char];
-      right_end[-num_matching_char] = s[num_matching_char];
-
-      num_matching_char += num_matching_char_insert_char + 1;
-
-      left_half[num_matching_char] = 0;	// terminate left-half string
-
-      output_ss << left_half;
-
-      if (left_idx + num_matching_char - 1 < right_idx - num_matching_char + 1) {
-	// Odd number of characters, so insert middle character
-	output_ss << s[num_matching_char];
-      }
-
-      output_ss << (right_end - num_matching_char + 1);
-
-    } else if (kitayuta_walk(s,
-			     left_idx + num_matching_char,
-			     right_idx - num_matching_char - 1,
-			     left_half + num_matching_char + 1,
-			     right_end - num_matching_char - 1,
-			     num_matching_char_insert_char)) {
-      //-------------------------
-      // Found a match by inserting a character on the left
-      //
-      left_half[num_matching_char]  = s[right_idx - num_matching_char];
-      right_end[-num_matching_char] = s[right_idx - num_matching_char];
-
-      num_matching_char += num_matching_char_insert_char + 1;
-
-      left_half[num_matching_char] = 0;	// terminate left-half string
-
-      output_ss << left_half;
-
-      if (left_idx + num_matching_char - 1 < right_idx - num_matching_char + 1) {
-	// Odd number of characters, so insert middle character
-	output_ss << s[num_matching_char - 1];
-      }
-
-      output_ss << (right_end - num_matching_char + 1);
-
-    } else {
+	// Try inserting character on the left
+	!kitayuta_test_insert(s,
+			      left_idx + num_matching_char,
+			      right_idx - num_matching_char - 1,
+			      left_half,
+			      left_half + num_matching_char + 1,
+			      right_end - num_matching_char - 1,
+			      s[right_idx - num_matching_char],
+			      output_ss)) {
       // Couldn't find a match by inserting a character on the left or the right:  fail
       output_ss << "NA";
     }
